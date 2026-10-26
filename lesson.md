@@ -6,8 +6,7 @@ By the end of this lesson, you will be able to:
 
 1. **Add** OSV-Scanner to a repository with GitHub Actions, pinned by commit SHA
 2. **Distinguish** blocking security gates from non-blocking security checks
-3. **Triage** findings: decide fix vs temporary ignore, and record an ignore in `osv-scanner.toml` (reason + expiry)
-4. **Run** an OWASP ZAP baseline (DAST) scan against a deployed application and interpret its alerts
+3. **Run** an OWASP ZAP baseline (DAST) scan against a deployed application and interpret its alerts
 
 ---
 
@@ -161,90 +160,7 @@ Also notice the commit on your repository's main page: it now shows **two** stat
 
 ---
 
-## Part 3 - Triage the Findings: Fix or Ignore?
-
-As the DevSecOps team, you don't fix the application - but you **decide what happens to each finding** and record that decision.
-
-### Step 1: Compare the Two Systems
-
-| | CircleCI (Lesson 4.13) | GitHub Actions (today) |
-|---|---|---|
-| Tool | Snyk (`snyk_scan`) | OSV-Scanner |
-| Fails on | HIGH and CRITICAL | **Any** severity |
-| When a scan fails | **Blocks** publish and deploy | Alert in the **Security** tab - nothing is blocked |
-| Runs | On every push | On every push **and every Monday** |
-
-Both are red today - for the same reason: known vulnerabilities in devops-demo's dependencies. Different tools, different databases: compare OSV's alerts with Snyk's list. Are they the same libraries?
-
-### Step 2: Fix or Ignore?
-
-Every finding needs a decision:
-
-| Fix (preferred) | Ignore (temporary) |
-|---|---|
-| Developers upgrade to a fixed version | Record that the risk is **accepted for now** |
-| Problem gone for good | Problem still there - someone must come back to it |
-| Use when a fix exists and is safe to apply | Use when no fix exists yet, the vulnerable code is never called, or the upgrade needs more time |
-
-Fixes are tracked in your **security ticket** from Lesson 4.13. Today you'll practise the other option on **one** finding: a reviewed, **time-limited** ignore.
-
-### Step 3: Choose One Finding
-
-1. Repository → **Security** → **Code scanning** → filter **osv-scanner**
-2. Pick **one LOW or MEDIUM** alert (never practise on a CRITICAL one)
-3. Copy its **ID** exactly - OSV uses IDs such as `GHSA-xxxx-xxxx-xxxx` (GitHub Advisory) alongside the CVE
-4. Read the description: what's affected, and is a fixed version available?
-
-<!-- INSTRUCTOR: check before class which LOW/MEDIUM alerts OSV-Scanner reports for devops-demo, and suggest one students can all use. If OSV only reports HIGH/CRITICAL, use one of those and stress it's for practice only. -->
-
-### Step 4: Ignore It - with a Reason and an Expiry
-
-In the **root** of your project (next to `pom.xml`), create `osv-scanner.toml`:
-
-```toml
-# Vulnerabilities we have reviewed and accepted FOR NOW.
-# Every entry needs a reason and an expiry date.
-
-[[IgnoredVulns]]
-id = "GHSA-xxxx-xxxx-xxxx"              # copy the exact ID from your alert
-ignoreUntil = 2026-12-31T00:00:00Z      # after this date the finding comes back
-reason = "Reviewed by <your name>: <why it's acceptable for now>. Fix tracked in issue #<number>."
-```
-
-| Field | Meaning |
-|---|---|
-| `id` | The vulnerability to ignore - exactly as shown in the alert |
-| `ignoreUntil` | **Expiry date.** After it, OSV-Scanner reports the finding again |
-| `reason` | **Why** it's acceptable for now, and **where the fix is tracked** - your audit trail |
-
-**OSV-Scanner finds this file automatically** because it sits in the same folder as `pom.xml`.
-
-```bash
-git add osv-scanner.toml
-git commit -m "Accept <ID> temporarily (reason + expiry)"
-git push origin main
-```
-
-**Expected result:**
-- The alert you chose **closes** in the Security tab
-- The workflow is **still red** - the other findings are still there, as they should be
-
-**Rules for ignoring:**
-- Only ignore what you've **investigated and understood**
-- Always give a **reason** and an **expiry** - never ignore forever
-- Link the **ticket** where the real fix is tracked
-- Commit the file, so the decision is **reviewed** like any other change
-- Never ignore findings just to turn a check green
-
-### Step 5: What Happens Next?
-
-- **Developers** work through the security ticket - usually by upgrading Spring Boot - and the alerts close by themselves on the next scan
-- When the fix for your ignored finding is in, **delete its entry** from `osv-scanner.toml` - a stale ignore hides problems
-- If nobody fixes it, the **expiry date** brings the finding back automatically
-
----
-
-## Part 4 - DAST: Scan Your Live App with OWASP ZAP
+## Part 3 - DAST: Scan Your Live App with OWASP ZAP
 
 ### What Is OWASP ZAP?
 
@@ -371,7 +287,7 @@ git push origin main
 
 ---
 
-## Part 5 - Your Complete DevSecOps Setup
+## Part 4 - Your Complete DevSecOps Setup
 
 | Where | Tool | Type | Role |
 |---|---|---|---|
@@ -394,9 +310,7 @@ git push origin main
 
 **4. Give workflows the least permissions** - `contents: read` plus only what they need
 
-**5. Ignore with a reason and an expiry** - and remove ignores once the fix is in
-
-**6. DAST only against apps you own** - baseline for live apps; full scans in test environments
+**5. DAST only against apps you own** - baseline for live apps; full scans in test environments
 
 ---
 
@@ -461,7 +375,7 @@ git push origin main
 
 ---
 
-### Issue 6: There's no "Run workflow" button
+### Issue 5: There's no "Run workflow" button
 
 **Solution:** The workflow file must be on the **default branch** (`main`) and include `workflow_dispatch:`.
 
